@@ -1,0 +1,1620 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Хаместер Комбат - Полная версия</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.6.0/dist/web3.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --accent-color: #f39c12;
+            --danger-color: #e74c3c;
+            --success-color: #2ecc71;
+            --warning-color: #f1c40f;
+            --info-color: #3498db;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 0;
+            min-height: 100vh;
+        }
+        
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 0.5s ease;
+        }
+        
+        .loader {
+            width: 80px;
+            height: 80px;
+            border: 8px solid rgba(255,255,255,0.3);
+            border-top: 8px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        /* Main Menu */
+        .main-menu {
+            display: none;
+            flex-direction: column;
+            height: 100vh;
+            padding: 20px;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+        }
+        
+        .menu-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .menu-header h1 {
+            font-size: 32px;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.5);
+            margin-bottom: 10px;
+        }
+        
+        .wallet-info {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .balance-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .currency-balance {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            flex: 1;
+        }
+        
+        .menu-btn {
+            padding: 20px;
+            border: none;
+            border-radius: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .menu-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+        
+        .menu-btn:active {
+            transform: translateY(0);
+        }
+        
+        /* Game Screens */
+        .screen {
+            display: none;
+            flex-direction: column;
+            height: 100vh;
+            padding: 20px;
+        }
+        
+        .screen-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .back-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 10px;
+        }
+        
+        /* Battle Screen */
+        .battle-screen {
+            background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
+        }
+        
+        .battle-arena {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .enemy-section, .player-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .character {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+            position: relative;
+            margin-bottom: 15px;
+        }
+        
+        .player-character {
+            background: linear-gradient(135deg, var(--accent-color), #e67e22);
+            box-shadow: 0 0 30px rgba(243, 156, 18, 0.5);
+        }
+        
+        .enemy-character {
+            background: linear-gradient(135deg, var(--danger-color), #c0392b);
+            box-shadow: 0 0 30px rgba(231, 76, 60, 0.5);
+        }
+        
+        .health-bar-container {
+            width: 200px;
+            height: 20px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        
+        .health-bar {
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+        
+        .player-health {
+            background: linear-gradient(90deg, var(--success-color), #27ae60);
+        }
+        
+        .enemy-health {
+            background: linear-gradient(90deg, var(--danger-color), #c0392b);
+        }
+        
+        .battle-controls {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        
+        .battle-btn {
+            padding: 20px;
+            border: none;
+            border-radius: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .battle-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .attack-btn { background: var(--danger-color); }
+        .defend-btn { background: var(--info-color); }
+        .special-btn { background: var(--warning-color); grid-column: span 2; }
+        .heal-btn { background: var(--success-color); }
+        
+        .battle-log {
+            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            border-radius: 15px;
+            margin-top: 20px;
+            max-height: 150px;
+            overflow-y: auto;
+            font-size: 14px;
+        }
+        
+        /* Shop Screen */
+        .shop-screen {
+            background: linear-gradient(180deg, #27ae60 0%, #2ecc71 100%);
+        }
+        
+        .shop-categories {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+        
+        .category-btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 25px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            cursor: pointer;
+            white-space: nowrap;
+            backdrop-filter: blur(10px);
+        }
+        
+        .category-btn.active {
+            background: rgba(255,255,255,0.4);
+        }
+        
+        .shop-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .shop-item {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .item-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+        
+        .item-price {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: bold;
+        }
+        
+        .buy-btn {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 10px;
+            background: var(--accent-color);
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        /* Wallet Screen */
+        .wallet-screen {
+            background: linear-gradient(180deg, #34495e 0%, #2c3e50 100%);
+        }
+        
+        .wallet-actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .wallet-btn {
+            padding: 20px;
+            border: none;
+            border-radius: 15px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .currency-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .currency-item {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .currency-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* Inventory Screen */
+        .inventory-screen {
+            background: linear-gradient(180deg, #8e44ad 0%, #9b59b6 100%);
+        }
+        
+        .inventory-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+        
+        .filter-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        
+        .filter-btn.active {
+            background: rgba(255,255,255,0.4);
+        }
+        
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .inventory-item {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .item-count {
+            background: var(--accent-color);
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            position: absolute;
+            top: -5px;
+            right: -5px;
+        }
+        
+        /* Settings Screen */
+        .settings-screen {
+            background: linear-gradient(180deg, #16a085 0%, #1abc9c 100%);
+        }
+        
+        .settings-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .setting-item {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .toggle-switch {
+            width: 50px;
+            height: 25px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 25px;
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .toggle-switch.active {
+            background: var(--success-color);
+        }
+        
+        .toggle-knob {
+            width: 21px;
+            height: 21px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s ease;
+        }
+        
+        .toggle-switch.active .toggle-knob {
+            transform: translateX(25px);
+        }
+        
+        /* Animations */
+        @keyframes damage {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes heal {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); box-shadow: 0 0 30px var(--success-color); }
+            100% { transform: scale(1); }
+        }
+        
+        .damage-animation {
+            animation: damage 0.3s ease;
+        }
+        
+        .heal-animation {
+            animation: heal 0.5s ease;
+        }
+        
+        /* Notifications */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            z-index: 1001;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        /* Responsive */
+        @media (max-width: 480px) {
+            .battle-controls {
+                grid-template-columns: 1fr;
+            }
+            
+            .special-btn {
+                grid-column: span 1;
+            }
+            
+            .wallet-actions {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Loading Screen -->
+        <div class="loading-screen" id="loadingScreen">
+            <div class="loader"></div>
+            <div class="loading-text">Загрузка Хаместер Комбат...</div>
+        </div>
+        
+        <!-- Main Menu -->
+        <div class="main-menu" id="mainMenu">
+            <div class="menu-header">
+                <h1>🐹 Хаместер Комбат</h1>
+                <div class="wallet-info">
+                    <div class="balance-display">
+                        <div class="currency-balance">
+                            <span>🪙</span>
+                            <span id="mainCoins">0</span>
+                        </div>
+                        <div class="currency-balance">
+                            <span>💎</span>
+                            <span id="mainGems">0</span>
+                        </div>
+                    </div>
+                    <div class="wallet-status" id="walletStatus">
+                        Кошелек: Не подключен
+                    </div>
+                </div>
+            </div>
+            
+            <div class="menu-buttons">
+                <button class="menu-btn" onclick="showScreen('battleScreen')">
+                    ⚔️ Начать битву
+                </button>
+                <button class="menu-btn" onclick="showScreen('shopScreen')">
+                    🛍️ Магазин
+                </button>
+                <button class="menu-btn" onclick="showScreen('inventoryScreen')">
+                    🎒 Инвентарь
+                </button>
+                <button class="menu-btn" onclick="showScreen('walletScreen')">
+                    💰 Кошелек
+                </button>
+                <button class="menu-btn" onclick="showScreen('settingsScreen')">
+                    ⚙️ Настройки
+                </button>
+            </div>
+        </div>
+        
+        <!-- Battle Screen -->
+        <div class="screen battle-screen" id="battleScreen">
+            <div class="screen-header">
+                <button class="back-btn" onclick="showScreen('mainMenu')">←</button>
+                <h2>Арена битв</h2>
+                <div class="currency-balance">
+                    <span>🪙</span>
+                    <span id="battleCoins">0</span>
+                </div>
+            </div>
+            
+            <div class="battle-arena">
+                <div class="enemy-section">
+                    <div class="character enemy-character" id="enemyCharacter">
+                        🐭
+                    </div>
+                    <div class="health-bar-container">
+                        <div class="health-bar enemy-health" id="enemyHealthBar"></div>
+                    </div>
+                    <div>Противник</div>
+                </div>
+                
+                <div class="battle-log" id="battleLog">
+                    Битва начнется когда вы сделаете ход!
+                </div>
+                
+                <div class="player-section">
+                    <div class="character player-character" id="playerCharacter">
+                        🐹
+                    </div>
+                    <div class="health-bar-container">
+                        <div class="health-bar player-health" id="playerHealthBar"></div>
+                    </div>
+                    <div>Ваш хомяк</div>
+                </div>
+            </div>
+            
+            <div class="battle-controls">
+                <button class="battle-btn attack-btn" onclick="playerAction('attack')">
+                    <span>⚔️</span>
+                    <span>Атака</span>
+                </button>
+                <button class="battle-btn defend-btn" onclick="playerAction('defend')">
+                    <span>🛡️</span>
+                    <span>Защита</span>
+                </button>
+                <button class="battle-btn special-btn" onclick="playerAction('special')">
+                    <span>💥</span>
+                    <span>Супер удар</span>
+                </button>
+                <button class="battle-btn heal-btn" onclick="playerAction('heal')">
+                    <span>❤️</span>
+                    <span>Лечение</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Shop Screen -->
+        <div class="screen shop-screen" id="shopScreen">
+            <div class="screen-header">
+                <button class="back-btn" onclick="showScreen('mainMenu')">←</button>
+                <h2>Магазин</h2>
+                <div class="currency-balance">
+                    <span>🪙</span>
+                    <span id="shopCoins">0</span>
+                </div>
+            </div>
+            
+            <div class="shop-categories">
+                <button class="category-btn active" onclick="changeShopCategory('weapons')">Оружие</button>
+                <button class="category-btn" onclick="changeShopCategory('armor')">Броня</button>
+                <button class="category-btn" onclick="changeShopCategory('potions')">Зелья</button>
+                <button class="category-btn" onclick="changeShopCategory('special')">Особое</button>
+                <button class="category-btn" onclick="changeShopCategory('gems')">За кристаллы</button>
+            </div>
+            
+            <div class="shop-items" id="shopItems">
+                <!-- Items will be loaded here -->
+            </div>
+        </div>
+        
+        <!-- Wallet Screen -->
+        <div class="screen wallet-screen" id="walletScreen">
+            <div class="screen-header">
+                <button class="back-btn" onclick="showScreen('mainMenu')">←</button>
+                <h2>Кошелек</h2>
+            </div>
+            
+            <div class="wallet-actions">
+                <button class="wallet-btn" onclick="connectWallet()">
+                    <span>🔗</span>
+                    <span>Подключить кошелек</span>
+                </button>
+                <button class="wallet-btn" onclick="showDepositPopup()">
+                    <span>📥</span>
+                    <span>Пополнить</span>
+                </button>
+                <button class="wallet-btn" onclick="showWithdrawPopup()">
+                    <span>📤</span>
+                    <span>Вывести</span>
+                </button>
+                <button class="wallet-btn" onclick="showTransactionHistory()">
+                    <span>📋</span>
+                    <span>История операций</span>
+                </button>
+            </div>
+            
+            <div class="currency-list" id="currencyList">
+                <!-- Currencies will be loaded here -->
+            </div>
+        </div>
+        
+        <!-- Inventory Screen -->
+        <div class="screen inventory-screen" id="inventoryScreen">
+            <div class="screen-header">
+                <button class="back-btn" onclick="showScreen('mainMenu')">←</button>
+                <h2>Инвентарь</h2>
+            </div>
+            
+            <div class="inventory-filters">
+                <button class="filter-btn active" onclick="changeInventoryFilter('all')">Все</button>
+                <button class="filter-btn" onclick="changeInventoryFilter('weapons')">Оружие</button>
+                <button class="filter-btn" onclick="changeInventoryFilter('armor')">Броня</button>
+                <button class="filter-btn" onclick="changeInventoryFilter('potions')">Зелья</button>
+                <button class="filter-btn" onclick="changeInventoryFilter('special')">Особое</button>
+            </div>
+            
+            <div class="inventory-grid" id="inventoryGrid">
+                <!-- Inventory items will be loaded here -->
+            </div>
+        </div>
+        
+        <!-- Settings Screen -->
+        <div class="screen settings-screen" id="settingsScreen">
+            <div class="screen-header">
+                <button class="back-btn" onclick="showScreen('mainMenu')">←</button>
+                <h2>Настройки</h2>
+            </div>
+            
+            <div class="settings-list">
+                <div class="setting-item">
+                    <span>Звуковые эффекты</span>
+                    <div class="toggle-switch" onclick="toggleSetting('sound')">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <span>Музыка</span>
+                    <div class="toggle-switch" onclick="toggleSetting('music')">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <span>Виброотклик</span>
+                    <div class="toggle-switch" onclick="toggleSetting('vibration')">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <span>Уведомления</span>
+                    <div class="toggle-switch active" onclick="toggleSetting('notifications')">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <span>Темная тема</span>
+                    <div class="toggle-switch active" onclick="toggleSetting('darkTheme')">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Notification System -->
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // =============================================
+        // GLOBAL VARIABLES AND INITIALIZATION
+        // =============================================
+        
+        let tg = null;
+        let gameState = {
+            // Player stats
+            player: {
+                health: 100,
+                maxHealth: 100,
+                attack: 10,
+                defense: 5,
+                level: 1,
+                experience: 0,
+                expToNextLevel: 100
+            },
+            
+            // Enemy stats
+            enemy: {
+                health: 50,
+                maxHealth: 50,
+                attack: 8,
+                defense: 3,
+                level: 1
+            },
+            
+            // Currency system
+            currencies: {
+                coins: 100,
+                gems: 5,
+                ton: 0,
+                usdt: 0
+            },
+            
+            // Inventory system
+            inventory: {
+                weapons: [],
+                armor: [],
+                potions: [],
+                special: []
+            },
+            
+            // Game settings
+            settings: {
+                sound: true,
+                music: true,
+                vibration: true,
+                notifications: true,
+                darkTheme: true
+            },
+            
+            // Wallet system
+            wallet: {
+                connected: false,
+                address: null,
+                network: null,
+                balance: 0
+            },
+            
+            // Battle state
+            battle: {
+                isPlayerTurn: true,
+                isDefending: false,
+                specialCharge: 0,
+                maxSpecialCharge: 100
+            },
+            
+            // Shop items
+            shop: {
+                weapons: [
+                    { id: 1, name: "Острый резец", price: 50, attack: 5, icon: "⚔️" },
+                    { id: 2, name: "Стальные зубы", price: 100, attack: 10, icon: "🦷" },
+                    { id: 3, name: "Золотой коготь", price: 200, attack: 15, icon: "🐾" },
+                    { id: 4, name: "Плазменный луч", price: 500, attack: 25, icon: "🔫" }
+                ],
+                armor: [
+                    { id: 1, name: "Кожанная броня", price: 40, defense: 3, icon: "🛡️" },
+                    { id: 2, name: "Стальная броня", price: 120, defense: 7, icon: "🥋" },
+                    { id: 3, name: "Энергощит", price: 300, defense: 12, icon: "🔰" }
+                ],
+                potions: [
+                    { id: 1, name: "Малое зелье", price: 20, heal: 30, icon: "🧪" },
+                    { id: 2, name: "Среднее зелье", price: 45, heal: 60, icon: "🧴" },
+                    { id: 3, name: "Большое зелье", price: 80, heal: 100, icon: "🏺" }
+                ],
+                special: [
+                    { id: 1, name: "Ускорение", price: 150, effect: "speed", icon: "⚡" },
+                    { id: 2, name: "Невидимость", price: 200, effect: "invisibility", icon: "👻" },
+                    { id: 3, name: "Телепорт", price: 300, effect: "teleport", icon: "🌀" }
+                ]
+            }
+        };
+
+        // =============================================
+        // INITIALIZATION FUNCTIONS
+        // =============================================
+
+        function initGame() {
+            console.log("Initializing Hamster Combat...");
+            
+            // Initialize Telegram Web App
+            try {
+                tg = window.Telegram.WebApp;
+                tg.ready();
+                tg.expand();
+                tg.enableClosingConfirmation();
+                console.log("Telegram Web App initialized");
+            } catch (error) {
+                console.log("Running outside Telegram, using mock Telegram API");
+                tg = createMockTelegramAPI();
+            }
+            
+            // Load game state from localStorage
+            loadGameState();
+            
+            // Initialize Web3 for cryptocurrency integration
+            initWeb3();
+            
+            // Set up event listeners
+            setupEventListeners();
+            
+            // Initialize UI
+            updateAllUI();
+            
+            // Simulate loading process
+            setTimeout(() => {
+                document.getElementById('loadingScreen').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('loadingScreen').style.display = 'none';
+                    document.getElementById('mainMenu').style.display = 'flex';
+                    showNotification("Добро пожаловать в Хаместер Комбат!");
+                }, 500);
+            }, 2000);
+        }
+
+        function createMockTelegramAPI() {
+            return {
+                ready: () => console.log("Mock Telegram ready"),
+                expand: () => console.log("Mock Telegram expand"),
+                enableClosingConfirmation: () => console.log("Mock Telegram closing confirmation"),
+                showPopup: (popup, callback) => {
+                    console.log("Mock Telegram popup:", popup);
+                    if (callback) callback(true);
+                },
+                showConfirm: (message, callback) => {
+                    console.log("Mock Telegram confirm:", message);
+                    if (callback) callback(true);
+                }
+            };
+        }
+
+        function initWeb3() {
+            // Initialize Web3 for TON integration
+            if (typeof window.ethereum !== 'undefined') {
+                console.log('Web3 detected!');
+                window.web3 = new Web3(window.ethereum);
+            } else {
+                console.log('No Web3 detected, using fallback');
+                window.web3 = new Web3(new Web3.providers.HttpProvider('https://mainnet.infura.io/v3/YOUR_PROJECT_ID'));
+            }
+        }
+
+        function setupEventListeners() {
+            // Add any global event listeners here
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+        }
+
+        function handleVisibilityChange() {
+            if (!document.hidden) {
+                // App became visible, refresh data
+                updateAllUI();
+            }
+        }
+
+        // =============================================
+        // GAME STATE MANAGEMENT
+        // =============================================
+
+        function loadGameState() {
+            const savedState = localStorage.getItem('hamsterCombatSave');
+            if (savedState) {
+                try {
+                    const parsed = JSON.parse(savedState);
+                    gameState = { ...gameState, ...parsed };
+                    console.log("Game state loaded from localStorage");
+                } catch (error) {
+                    console.error("Error loading game state:", error);
+                }
+            }
+        }
+
+        function saveGameState() {
+            try {
+                localStorage.setItem('hamsterCombatSave', JSON.stringify(gameState));
+                console.log("Game state saved to localStorage");
+            } catch (error) {
+                console.error("Error saving game state:", error);
+            }
+        }
+
+        // =============================================
+        // SCREEN MANAGEMENT
+        // =============================================
+
+        function showScreen(screenId) {
+            // Hide all screens
+            const screens = document.querySelectorAll('.screen');
+            screens.forEach(screen => {
+                screen.style.display = 'none';
+            });
+            
+            // Hide main menu
+            document.getElementById('mainMenu').style.display = 'none';
+            
+            // Show target screen
+            const targetScreen = document.getElementById(screenId);
+            if (targetScreen) {
+                targetScreen.style.display = 'flex';
+                
+                // Update screen-specific UI
+                switch(screenId) {
+                    case 'battleScreen':
+                        updateBattleUI();
+                        break;
+                    case 'shopScreen':
+                        updateShopUI();
+                        break;
+                    case 'walletScreen':
+                        updateWalletUI();
+                        break;
+                    case 'inventoryScreen':
+                        updateInventoryUI();
+                        break;
+                    case 'settingsScreen':
+                        updateSettingsUI();
+                        break;
+                }
+            }
+        }
+
+        function updateAllUI() {
+            updateMainMenuUI();
+            updateBattleUI();
+            updateShopUI();
+            updateWalletUI();
+            updateInventoryUI();
+            updateSettingsUI();
+        }
+
+        // =============================================
+        // BATTLE SYSTEM
+        // =============================================
+
+        function playerAction(action) {
+            if (!gameState.battle.isPlayerTurn) return;
+            
+            const player = gameState.player;
+            const enemy = gameState.enemy;
+            
+            switch(action) {
+                case 'attack':
+                    const damage = calculateDamage(player.attack, enemy.defense);
+                    enemy.health -= damage;
+                    addToBattleLog(`Вы атакуете и наносите ${damage} урона!`);
+                    gameState.battle.specialCharge += 10;
+                    break;
+                    
+                case 'defend':
+                    gameState.battle.isDefending = true;
+                    addToBattleLog("Вы принимаете защитную стойку!");
+                    gameState.battle.specialCharge += 5;
+                    break;
+                    
+                case 'special':
+                    if (gameState.battle.specialCharge >= gameState.battle.maxSpecialCharge) {
+                        const specialDamage = calculateDamage(player.attack * 2, enemy.defense);
+                        enemy.health -= specialDamage;
+                        addToBattleLog(`СУПЕР УДАР! Вы наносите ${specialDamage} урона!`);
+                        gameState.battle.specialCharge = 0;
+                    } else {
+                        addToBattleLog("Недостаточно энергии для супер удара!");
+                        return;
+                    }
+                    break;
+                    
+                case 'heal':
+                    const healAmount = Math.floor(player.maxHealth * 0.3);
+                    player.health = Math.min(player.health + healAmount, player.maxHealth);
+                    addToBattleLog(`Вы восстанавливаете ${healAmount} здоровья!`);
+                    gameState.battle.specialCharge += 5;
+                    break;
+            }
+            
+            gameState.battle.isPlayerTurn = false;
+            updateBattleUI();
+            
+            // Enemy turn after a short delay
+            setTimeout(enemyTurn, 1000);
+        }
+
+        function enemyTurn() {
+            const player = gameState.player;
+            const enemy = gameState.enemy;
+            
+            if (enemy.health <= 0) {
+                endBattle(true);
+                return;
+            }
+            
+            let enemyDamage = calculateDamage(enemy.attack, player.defense);
+            
+            if (gameState.battle.isDefending) {
+                enemyDamage = Math.floor(enemyDamage * 0.5);
+                gameState.battle.isDefending = false;
+                addToBattleLog("Ваша защита снижает урон врага!");
+            }
+            
+            player.health -= enemyDamage;
+            addToBattleLog(`Противник атакует и наносит ${enemyDamage} урона!`);
+            
+            updateBattleUI();
+            
+            if (player.health <= 0) {
+                endBattle(false);
+            } else {
+                gameState.battle.isPlayerTurn = true;
+            }
+        }
+
+        function calculateDamage(attack, defense) {
+            const baseDamage = Math.max(1, attack - defense);
+            const variance = Math.floor(baseDamage * 0.2);
+            return baseDamage + Math.floor(Math.random() * variance);
+        }
+
+        function endBattle(playerWon) {
+            if (playerWon) {
+                const coinsEarned = Math.floor(Math.random() * 20) + 10;
+                const expEarned = 25;
+                
+                gameState.currencies.coins += coinsEarned;
+                gameState.player.experience += expEarned;
+                
+                addToBattleLog(`ПОБЕДА! +${coinsEarned} монет, +${expEarned} опыта!`);
+                
+                // Check for level up
+                checkLevelUp();
+                
+                // Prepare next enemy
+                prepareNextEnemy();
+            } else {
+                addToBattleLog("Поражение! Вы теряете 10 монет.");
+                gameState.currencies.coins = Math.max(0, gameState.currencies.coins - 10);
+            }
+            
+            // Reset battle state
+            gameState.battle.isPlayerTurn = true;
+            gameState.battle.isDefending = false;
+            
+            updateBattleUI();
+            saveGameState();
+        }
+
+        function prepareNextEnemy() {
+            gameState.enemy.level++;
+            gameState.enemy.maxHealth = 50 + (gameState.enemy.level * 10);
+            gameState.enemy.health = gameState.enemy.maxHealth;
+            gameState.enemy.attack = 8 + (gameState.enemy.level * 2);
+            gameState.enemy.defense = 3 + gameState.enemy.level;
+        }
+
+        function checkLevelUp() {
+            if (gameState.player.experience >= gameState.player.expToNextLevel) {
+                gameState.player.level++;
+                gameState.player.experience -= gameState.player.expToNextLevel;
+                gameState.player.expToNextLevel = Math.floor(gameState.player.expToNextLevel * 1.5);
+                
+                gameState.player.maxHealth += 20;
+                gameState.player.health = gameState.player.maxHealth;
+                gameState.player.attack += 2;
+                gameState.player.defense += 1;
+                
+                addToBattleLog(`УРОВЕНЬ ПОВЫШЕН! Теперь у вас ${gameState.player.level} уровень!`);
+                showNotification(`Достигнут уровень ${gameState.player.level}!`);
+            }
+        }
+
+        // =============================================
+        // SHOP SYSTEM
+        // =============================================
+
+        function changeShopCategory(category) {
+            // Update active category button
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Display items for selected category
+            displayShopItems(category);
+        }
+
+        function displayShopItems(category) {
+            const shopItemsContainer = document.getElementById('shopItems');
+            shopItemsContainer.innerHTML = '';
+            
+            const items = gameState.shop[category];
+            
+            items.forEach(item => {
+                const itemElement = document.createElement('div');
+                itemElement.className = 'shop-item';
+                
+                itemElement.innerHTML = `
+                    <div class="item-icon">${item.icon}</div>
+                    <h3>${item.name}</h3>
+                    <div class="item-price">
+                        <span>${item.price}</span>
+                        <span>🪙</span>
+                    </div>
+                    <button class="buy-btn" onclick="buyItem('${category}', ${item.id})">
+                        Купить
+                    </button>
+                `;
+                
+                shopItemsContainer.appendChild(itemElement);
+            });
+        }
+
+        function buyItem(category, itemId) {
+            const item = gameState.shop[category].find(i => i.id === itemId);
+            
+            if (!item) {
+                showNotification("Предмет не найден!");
+                return;
+            }
+            
+            if (gameState.currencies.coins < item.price) {
+                showNotification("Недостаточно монет!");
+                return;
+            }
+            
+            // Process purchase
+            gameState.currencies.coins -= item.price;
+            
+            // Add to inventory
+            if (!gameState.inventory[category]) {
+                gameState.inventory[category] = [];
+            }
+            
+            const existingItem = gameState.inventory[category].find(i => i.id === itemId);
+            if (existingItem) {
+                existingItem.quantity = (existingItem.quantity || 1) + 1;
+            } else {
+                gameState.inventory[category].push({
+                    ...item,
+                    quantity: 1
+                });
+            }
+            
+            showNotification(`Куплено: ${item.name}`);
+            updateShopUI();
+            saveGameState();
+        }
+
+        // =============================================
+        // WALLET SYSTEM
+        // =============================================
+
+        async function connectWallet() {
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    // Request account access
+                    const accounts = await window.ethereum.request({
+                        method: 'eth_requestAccounts'
+                    });
+                    
+                    gameState.wallet.connected = true;
+                    gameState.wallet.address = accounts[0];
+                    gameState.wallet.network = await getNetworkName();
+                    
+                    // Get balance
+                    await updateWalletBalance();
+                    
+                    showNotification("Кошелек успешно подключен!");
+                    updateWalletUI();
+                    saveGameState();
+                    
+                } catch (error) {
+                    console.error("Error connecting wallet:", error);
+                    showNotification("Ошибка подключения кошелька");
+                }
+            } else {
+                showNotification("Установите MetaMask или другой Web3 кошелек");
+            }
+        }
+
+        async function getNetworkName() {
+            const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+            switch(chainId) {
+                case '0x1': return 'Ethereum Mainnet';
+                case '0xaa36a7': return 'Sepolia Testnet';
+                case '0x89': return 'Polygon Mainnet';
+                default: return 'Unknown Network';
+            }
+        }
+
+        async function updateWalletBalance() {
+            if (gameState.wallet.connected && window.web3) {
+                try {
+                    const balance = await window.web3.eth.getBalance(gameState.wallet.address);
+                    gameState.wallet.balance = window.web3.utils.fromWei(balance, 'ether');
+                } catch (error) {
+                    console.error("Error fetching balance:", error);
+                }
+            }
+        }
+
+        function showDepositPopup() {
+            if (!gameState.wallet.connected) {
+                showNotification("Сначала подключите кошелек");
+                return;
+            }
+            
+            tg.showPopup({
+                title: 'Пополнение счета',
+                message: `Ваш адрес для пополнения:\n${gameState.wallet.address}\n\nПоддерживаемые сети: Ethereum, Polygon, TON`,
+                buttons: [
+                    {id: 'copy', type: 'default', text: 'Копировать адрес'},
+                    {id: 'cancel', type: 'cancel', text: 'Закрыть'}
+                ]
+            }, (buttonId) => {
+                if (buttonId === 'copy') {
+                    navigator.clipboard.writeText(gameState.wallet.address);
+                    showNotification("Адрес скопирован в буфер обмена");
+                }
+            });
+        }
+
+        function showWithdrawPopup() {
+            if (!gameState.wallet.connected) {
+                showNotification("Сначала подключите кошелек");
+                return;
+            }
+            
+            tg.showPopup({
+                title: 'Вывод средств',
+                message: 'Функция вывода находится в разработке',
+                buttons: [
+                    {id: 'ok', type: 'default', text: 'OK'}
+                ]
+            });
+        }
+
+        function showTransactionHistory() {
+            tg.showPopup({
+                title: 'История операций',
+                message: 'История транзакций будет доступна после интеграции с блокчейном',
+                buttons: [
+                    {id: 'ok', type: 'default', text: 'Понятно'}
+                ]
+            });
+        }
+
+        // =============================================
+        // INVENTORY SYSTEM
+        // =============================================
+
+        function changeInventoryFilter(filter) {
+            // Update active filter button
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Display items for selected filter
+            displayInventoryItems(filter);
+        }
+
+        function displayInventoryItems(filter) {
+            const inventoryGrid = document.getElementById('inventoryGrid');
+            inventoryGrid.innerHTML = '';
+            
+            let items = [];
+            
+            if (filter === 'all') {
+                Object.values(gameState.inventory).forEach(category => {
+                    items = items.concat(category);
+                });
+            } else {
+                items = gameState.inventory[filter] || [];
+            }
+            
+            if (items.length === 0) {
+                inventoryGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px;">Инвентарь пуст</div>';
+                return;
+            }
+            
+            items.forEach(item => {
+                const itemElement = document.createElement('div');
+                itemElement.className = 'inventory-item';
+                
+                itemElement.innerHTML = `
+                    <div class="item-icon" style="position: relative;">
+                        ${item.icon}
+                        ${item.quantity > 1 ? `<div class="item-count">${item.quantity}</div>` : ''}
+                    </div>
+                    <h4>${item.name}</h4>
+                    <button class="buy-btn" onclick="useItem('${filter}', ${item.id})">
+                        Использовать
+                    </button>
+                `;
+                
+                inventoryGrid.appendChild(itemElement);
+            });
+        }
+
+        function useItem(category, itemId) {
+            const itemIndex = gameState.inventory[category].findIndex(i => i.id === itemId);
+            
+            if (itemIndex === -1) {
+                showNotification("Предмет не найден!");
+                return;
+            }
+            
+            const item = gameState.inventory[category][itemIndex];
+            
+            // Apply item effect
+            switch(category) {
+                case 'potions':
+                    if (item.heal) {
+                        gameState.player.health = Math.min(
+                            gameState.player.health + item.heal,
+                            gameState.player.maxHealth
+                        );
+                        showNotification(`Восстановлено ${item.heal} здоровья!`);
+                    }
+                    break;
+                    
+                case 'weapons':
+                    // Equip weapon logic would go here
+                    showNotification(`Экипировано: ${item.name}`);
+                    break;
+                    
+                case 'special':
+                    showNotification(`Активирован эффект: ${item.name}`);
+                    break;
+            }
+            
+            // Remove or decrement item
+            if (item.quantity > 1) {
+                item.quantity--;
+            } else {
+                gameState.inventory[category].splice(itemIndex, 1);
+            }
+            
+            updateInventoryUI();
+            saveGameState();
+        }
+
+        // =============================================
+        // SETTINGS SYSTEM
+        // =============================================
+
+        function toggleSetting(setting) {
+            gameState.settings[setting] = !gameState.settings[setting];
+            updateSettingsUI();
+            saveGameState();
+            
+            showNotification(`Настройка "${setting}" ${gameState.settings[setting] ? 'включена' : 'выключена'}`);
+        }
+
+        // =============================================
+        // UI UPDATE FUNCTIONS
+        // =============================================
+
+        function updateMainMenuUI() {
+            document.getElementById('mainCoins').textContent = gameState.currencies.coins;
+            document.getElementById('mainGems').textContent = gameState.currencies.gems;
+            
+            const walletStatus = document.getElementById('walletStatus');
+            if (gameState.wallet.connected) {
+                walletStatus.textContent = `Кошелек: ${gameState.wallet.address.substring(0, 8)}...`;
+            } else {
+                walletStatus.textContent = "Кошелек: Не подключен";
+            }
+        }
+
+        function updateBattleUI() {
+            const player = gameState.player;
+            const enemy = gameState.enemy;
+            const battle = gameState.battle;
+            
+            // Update health bars
+            document.getElementById('playerHealthBar').style.width = 
+                `${(player.health / player.maxHealth) * 100}%`;
+            document.getElementById('enemyHealthBar').style.width = 
+                `${(enemy.health / enemy.maxHealth) * 100}%`;
+            
+            // Update currency display
+            document.getElementById('battleCoins').textContent = gameState.currencies.coins;
+            
+            // Update character appearances based on health
+            updateCharacterAppearance('playerCharacter', player.health / player.maxHealth);
+            updateCharacterAppearance('enemyCharacter', enemy.health / enemy.maxHealth);
+            
+            // Update turn indicator
+            if (!battle.isPlayerTurn) {
+                addToBattleLog("Ход противника...");
+            }
+        }
+
+        function updateCharacterAppearance(characterId, healthRatio) {
+            const character = document.getElementById(characterId);
+            if (healthRatio < 0.3) {
+                character.style.background = 'linear-gradient(135deg, #e74c3c, #c0392b)';
+            } else if (healthRatio < 0.6) {
+                character.style.background = 'linear-gradient(135deg, #f39c12, #e67e22)';
+            } else {
+                if (characterId === 'playerCharacter') {
+                    character.style.background = 'linear-gradient(135deg, var(--accent-color), #e67e22)';
+                } else {
+                    character.style.background = 'linear-gradient(135deg, var(--danger-color), #c0392b)';
+                }
+            }
+        }
+
+        function updateShopUI() {
+            document.getElementById('shopCoins').textContent = gameState.currencies.coins;
+            
+            // Display default category items
+            if (!document.querySelector('.category-btn.active')) {
+                document.querySelector('.category-btn').classList.add('active');
+            }
+            const activeCategory = document.querySelector('.category-btn.active').textContent.toLowerCase();
+            displayShopItems(activeCategory);
+        }
+
+        function updateWalletUI() {
+            const currencyList = document.getElementById('currencyList');
+            currencyList.innerHTML = '';
+            
+            const currencies = [
+                { name: 'TON Coin', balance: gameState.currencies.ton, icon: '💎' },
+                { name: 'USDT', balance: gameState.currencies.usdt, icon: '💵' },
+                { name: 'Игровые монеты', balance: gameState.currencies.coins, icon: '🪙' },
+                { name: 'Кристаллы', balance: gameState.currencies.gems, icon: '🔮' }
+            ];
+            
+            currencies.forEach(currency => {
+                const currencyElement = document.createElement('div');
+                currencyElement.className = 'currency-item';
+                
+                currencyElement.innerHTML = `
+                    <div class="currency-info">
+                        <span class="currency-icon">${currency.icon}</span>
+                        <span class="currency-name">${currency.name}</span>
+                    </div>
+                    <div class="currency-balance">
+                        ${currency.balance}
+                    </div>
+                `;
+                
+                currencyList.appendChild(currencyElement);
+            });
+        }
+
+        function updateInventoryUI() {
+            if (!document.querySelector('.filter-btn.active')) {
+                document.querySelector('.filter-btn').classList.add('active');
+            }
+            const activeFilter = document.querySelector('.filter-btn.active').textContent.toLowerCase();
+            displayInventoryItems(activeFilter);
+        }
+
+        function updateSettingsUI() {
+            // Update toggle switches based on current settings
+            Object.keys(gameState.settings).forEach(setting => {
+                const toggle = document.querySelector(`[onclick="toggleSetting('${setting}')"]`);
+                if (toggle) {
+                    if (gameState.settings[setting]) {
+                        toggle.classList.add('active');
+                    } else {
+                        toggle.classList.remove('active');
+                    }
+                }
+            });
+        }
+
+        // =============================================
+        // UTILITY FUNCTIONS
+        // =============================================
+
+        function addToBattleLog(message) {
+            const battleLog = document.getElementById('battleLog');
+            const timestamp = new Date().toLocaleTimeString();
+            battleLog.innerHTML = `[${timestamp}] ${message}<br>` + battleLog.innerHTML;
+            
+            // Limit log length
+            const lines = battleLog.innerHTML.split('<br>');
+            if (lines.length > 10) {
+                battleLog.innerHTML = lines.slice(0, 10).join('<br>');
+            }
+        }
+
+        function showNotification(message, duration = 3000) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, duration);
+        }
+
+        function vibrate(pattern = [100]) {
+            if (gameState.settings.vibration && navigator.vibrate) {
+                navigator.vibrate(pattern);
+            }
+        }
+
+        // =============================================
+        // INITIALIZATION CALL
+        // =============================================
+
+        // Initialize the game when the DOM is loaded
+        document.addEventListener('DOMContentLoaded', initGame);
+
+        // Auto-save game state every 30 seconds
+        setInterval(saveGameState, 30000);
+
+    </script>
+</body>
+</html>
